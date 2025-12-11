@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>田字格汉字笔顺</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+            font-family: 'KaiTi', 'Kaiti SC', 'STKaiti', '楷体', serif; /* 优先使用楷体，更有书法感 */
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 控制栏样式 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        input {
+            width: 60px;
+            font-size: 24px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 8px 20px;
+            font-size: 16px;
+            background-color: #d9534f; /* 红色按钮配合田字格风格 */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #c9302c; }
+        button:disabled { background-color: #e2b6b6; cursor: not-allowed; }
+
+        /* --- 核心：田字格 CSS 样式 --- */
+        .tian-grid-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            background-color: #fff;
+            /* 外边框：红色实线 */
+            border: 4px solid #e09090; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* 横中线 (虚线) */
+        .tian-grid-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 0;
+            border-top: 2px dashed #e09090;
+            z-index: 0; /* 确保线在字的下面 */
+        }
+
+        /* 竖中线 (虚线) */
+        .tian-grid-container::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 0;
+            height: 100%;
+            border-left: 2px dashed #e09090;
+            z-index: 0;
+        }
+
+        /* HanziWriter 的挂载点 */
+        #hanzi-target {
+            position: relative;
+            z-index: 1; /* 字必须在网格线的上面 */
+            width: 100%;
+            height: 100%;
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>汉字笔顺演示</h1>
+
+    <div class="input-group">
+        <input type="text" id="charInput" value="田" maxlength="1">
+        <button onclick="runAnimation()" id="playBtn">写字</button>
+    </div>
+
+    <div class="tian-grid-container">
+        <div id="hanzi-target"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script>
+        let writer = null;
+
+        // 页面初始化时先运行一次
+        window.onload = () => runAnimation();
+
+        function runAnimation() {
+            const char = document.getElementById('charInput').value;
+            const target = document.getElementById('hanzi-target');
+            const status = document.getElementById('status');
+            const btn = document.getElementById('playBtn');
+
+            if (!char || !/[\u4e00-\u9fa5]/.test(char)) {
+                status.textContent = "请输入一个中文汉字";
+                return;
+            }
+
+            status.textContent = "加载中...";
+            btn.disabled = true;
+            target.innerHTML = ''; // 清空旧字
+
+            // 初始化 HanziWriter
+            writer = HanziWriter.create('hanzi-target', char, {
+                width: 300,
+                height: 300,
+                padding: 20, // 给字留点边距，不要顶格写
+                
+                // 笔画颜色 (黑色)
+                strokeColor: '#333333',
+                
+                // 底部轮廓颜色 (浅灰色)
+                // 如果不想显示底部灰色轮廓，把 showOutline 设为 false
+                outlineColor: '#dddddd',
+                showOutline: true, 
+                
+                // 动画速度设置 (数值越小越慢)
+                strokeAnimationSpeed: 0.3, // 书写速度 (0.3 比较慢，适合教学)
+                delayBetweenStrokes: 600,  // 每一笔写完后的停顿 (毫秒)
+                
+                // 加载失败处理
+                onLoadCharDataError: function(err) {
+                    status.textContent = "抱歉，字库中没有找到这个字。";
+                    btn.disabled = false;
+                }
+            });
+
+            // 开始动画
+            writer.animateCharacter({
+                onComplete: function() {
+                    status.textContent = "书写完成";
+                    btn.disabled = false;
+                }
+            });
+            
+            status.textContent = `正在演示：${char}`;
+        }
+
+        // 回车键支持
+        document.getElementById('charInput').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') runAnimation();
+        });
+    </script>
+</body>
+</html>

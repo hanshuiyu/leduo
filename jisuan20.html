@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>20以内加减法练习</title>
+    <style>
+        body {
+            font-family: "Comic Sans MS", "楷体", sans-serif;
+            background-color: #eef7ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .score-board {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .question-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 28px; /* 字体调大 */
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
+        }
+
+        .expression {
+            width: 150px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            height: 40px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        /* 移除输入框的小箭头 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 状态样式 */
+        .status-icon {
+            width: 40px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .correct input {
+            border-color: #28a745;
+            background-color: #f0fff4;
+            color: #28a745;
+        }
+        
+        .wrong input {
+            border-color: #dc3545;
+            background-color: #fff0f0;
+            color: #dc3545;
+        }
+
+        .btn-refresh {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background-color: #0056b3;
+        }
+        
+        /* 100分时的特效 */
+        .celebration {
+            color: #ff9800;
+            animation: pop 0.5s ease;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>📝 20以内加减法挑战</h1>
+
+    <div class="container">
+        <div class="score-board" id="scoreDisplay">得分：0 / 10</div>
+        <div id="quiz-list">
+            </div>
+        <button class="btn-refresh" onclick="generateQuestions()">换一批新题目 🔄</button>
+    </div>
+
+    <script>
+        let questions = [];
+        
+        // 初始化
+        window.onload = generateQuestions;
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateQuestions() {
+            const listDiv = document.getElementById('quiz-list');
+            listDiv.innerHTML = ''; // 清空旧题
+            questions = [];
+            
+            // 重置分数
+            updateScore();
+
+            for (let i = 0; i < 10; i++) {
+                let num1, num2, operator, answer;
+                
+                // 随机决定是加法还是减法 (0是加, 1是减)
+                if (Math.random() > 0.5) {
+                    // 加法：确保和 <= 20
+                    operator = '+';
+                    num1 = getRandomInt(0, 20);
+                    num2 = getRandomInt(0, 20 - num1); // 保证和不超过20
+                    answer = num1 + num2;
+                } else {
+                    // 减法：确保结果 >= 0
+                    operator = '-';
+                    num1 = getRandomInt(0, 20);
+                    num2 = getRandomInt(0, num1); // 保证不出现负数
+                    answer = num1 - num2;
+                }
+
+                questions.push({ answer: answer, solved: false });
+
+                // 创建HTML元素
+                const row = document.createElement('div');
+                row.className = 'question-row';
+                row.id = `row-${i}`;
+
+                row.innerHTML = `
+                    <div class="expression">${num1} ${operator} ${num2} = </div>
+                    <input type="number" id="input-${i}" onblur="checkAnswer(${i})" onkeydown="if(event.key==='Enter') this.blur()">
+                    <div class="status-icon" id="icon-${i}"></div>
+                `;
+                
+                listDiv.appendChild(row);
+            }
+        }
+
+        function checkAnswer(index) {
+            const inputEl = document.getElementById(`input-${index}`);
+            const rowEl = document.getElementById(`row-${index}`);
+            const iconEl = document.getElementById(`icon-${index}`);
+            const userVal = parseInt(inputEl.value);
+            const correctVal = questions[index].answer;
+
+            // 如果没填，不处理
+            if (inputEl.value === '') return;
+
+            if (userVal === correctVal) {
+                // 答对了
+                rowEl.classList.remove('wrong');
+                rowEl.classList.add('correct');
+                iconEl.innerHTML = '✅';
+                questions[index].solved = true;
+            } else {
+                // 答错了
+                rowEl.classList.remove('correct');
+                rowEl.classList.add('wrong');
+                iconEl.innerHTML = '❌';
+                questions[index].solved = false;
+            }
+
+            updateScore();
+        }
+
+        function updateScore() {
+            // 计算答对的数量
+            const correctCount = questions.filter(q => q.solved).length;
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            
+            scoreDisplay.innerText = `得分：${correctCount * 10} / 100`;
+
+            if (correctCount === 10) {
+                scoreDisplay.innerText = "🎉 100分！太棒了！ 🎉";
+                scoreDisplay.classList.add('celebration');
+            } else {
+                scoreDisplay.classList.remove('celebration');
+            }
+        }
+    </script>
+
+</body>
+</html>
