@@ -1,1 +1,4 @@
 # hello leduo
+[汉字书写](https://hanshuiyu.github.io/leduo/hanzi.html)
+[10以内加减练习](https://hanshuiyu.github.io/leduo/jisuan10.html)
+[20以内加减练习](https://hanshuiyu.github.io/leduo/jisuan20.html)
