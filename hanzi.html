@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田字格汉字笔顺（自动轮播版）</title>
+    <title>田字格汉字笔顺（修复轮播版）</title>
     <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
     <style>
         body {
@@ -17,10 +17,7 @@
             font-family: 'KaiTi', 'Kaiti SC', 'STKaiti', '楷体', serif;
         }
 
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
+        h1 { color: #333; margin-bottom: 20px; }
 
         .input-group {
             display: flex;
@@ -50,9 +47,10 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
         button:hover { background-color: #c9302c; }
-        button:disabled { background-color: #e2b6b6; cursor: not-allowed; }
+        button:disabled { background-color: #e2b6b6; cursor: wait; }
 
         /* --- 田字格样式 --- */
         .tian-grid-container {
@@ -64,40 +62,29 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
+        /* 横中线 */
         .tian-grid-container::before {
-            content: '';
-            position: absolute;
-            top: 50%; left: 0; width: 100%; height: 0;
-            border-top: 2px dashed #e09090;
-            z-index: 0;
+            content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 0;
+            border-top: 2px dashed #e09090; z-index: 0;
         }
-
+        /* 竖中线 */
         .tian-grid-container::after {
-            content: '';
-            position: absolute;
-            left: 50%; top: 0; width: 0; height: 100%;
-            border-left: 2px dashed #e09090;
-            z-index: 0;
+            content: ''; position: absolute; left: 50%; top: 0; width: 0; height: 100%;
+            border-left: 2px dashed #e09090; z-index: 0;
         }
 
         #hanzi-target {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            height: 100%;
+            position: relative; z-index: 1; width: 100%; height: 100%;
         }
 
         .status {
-            margin-top: 15px;
-            color: #666;
-            font-size: 14px;
-            min-height: 20px;
+            margin-top: 15px; color: #666; font-size: 14px; min-height: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h1>汉字笔顺演示 (自动轮播)</h1>
+    <h1>汉字笔顺轮播演示</h1>
 
     <div class="input-group">
         <input type="text" id="charInput" value="田" maxlength="1">
@@ -128,18 +115,18 @@
                 return;
             }
 
-            // 2. 清理旧的 writer 实例（关键步骤）
-            // 如果不取消，快速切换文字时，旧的动画循环可能还在后台跑
+            // 2. 销毁旧实例（防止动画叠加）
             if (writer) {
-                writer.cancelAnimation(); 
+                // 如果上一个字还在写，尝试取消动画
+                try { writer.cancelAnimation(); } catch(e){}
                 writer = null;
             }
-            target.innerHTML = ''; // 清空 DOM
+            target.innerHTML = ''; // 清空画面
 
             status.textContent = "加载中...";
-            btn.disabled = true; // 暂时禁用按钮，防止连点
+            btn.disabled = true; 
 
-            // 3. 初始化 HanziWriter
+            // 3. 创建 HanziWriter 实例
             writer = HanziWriter.create('hanzi-target', char, {
                 width: 300,
                 height: 300,
@@ -147,30 +134,29 @@
                 strokeColor: '#333333',
                 outlineColor: '#dddddd',
                 showOutline: true, 
-                strokeAnimationSpeed: 0.5, // 稍微调快一点点，配合轮播视觉效果更好
-                delayBetweenStrokes: 200,  
+                strokeAnimationSpeed: 0.5, // 0.5 属于中等速度
+                delayBetweenStrokes: 200,
                 
-                // 加载失败处理
+                // 加载错误处理
                 onLoadCharDataError: function(err) {
-                    status.textContent = "抱歉，字库中没有找到这个字。";
+                    status.textContent = "字库中找不到该汉字";
                     btn.disabled = false;
-                    writer = null; // 重置
                 },
-
                 // 加载成功处理
                 onLoadCharDataSuccess: function(data) {
-                    status.textContent = `正在轮播演示：${char}`;
-                    btn.disabled = false; // 加载成功后即可再次点击换字
-                    
-                    // 4. 核心修改：使用 loopCharacterAnimation 实现轮播
-                    writer.loopCharacterAnimation({
-                        delayBetweenLoops: 2000 // 每一轮写完后，停顿 2000毫秒(2秒) 再开始下一轮
-                    });
+                    status.textContent = `正在演示：${char}`;
+                    btn.disabled = false; 
                 }
+            });
+
+            // 4. 【核心修复】不依赖 callback，直接启动轮播
+            // HanziWriter 会自动等待数据加载完成后再开始播放
+            writer.loopCharacterAnimation({
+                delayBetweenLoops: 1000 // 写完后停留1000毫秒(1秒)，再开始下一轮
             });
         }
 
-        // 回车键支持
+        // 绑定回车键
         document.getElementById('charInput').addEventListener('keypress', (e) => {
             if(e.key === 'Enter') runAnimation();
         });
