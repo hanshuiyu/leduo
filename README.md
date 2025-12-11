@@ -5,3 +5,5 @@
 
 [20以内加减练习](https://hanshuiyu.github.io/leduo/jisuan20.html)
 
+[奇妙时钟](https://hanshuiyu.github.io/leduo/shizhong.html)
+
