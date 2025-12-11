@@ -2,11 +2,19 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>大班教学：时钟先生（进阶版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>大班教学：可拨动互动时钟</title>
     <style>
-        body { font-family: 'Comic Sans MS', 'Microsoft YaHei', sans-serif; background-color: #e0f7fa; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; user-select: none; }
-        h1 { color: #006064; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-        p { color: #555; margin-bottom: 20px; font-size: 14px; }
+        body { 
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', sans-serif; 
+            background-color: #e0f7fa; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; margin: 0; 
+            user-select: none; /* 禁止选中文本 */
+            touch-action: none; /* 禁止触摸屏幕时的默认滚动，方便拖拽 */
+        }
+        h1 { color: #006064; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); pointer-events: none; }
+        p { color: #555; margin-bottom: 20px; font-size: 14px; pointer-events: none; }
 
         /* 时钟外壳 */
         .clock {
@@ -16,51 +24,56 @@
             border-radius: 50%;
             position: relative;
             box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-            /* 增加一点木质或卡通纹理感（可选） */
             background-image: radial-gradient(circle, #fff 60%, #f5f5f5 100%);
         }
         
-        /* 刻度数字 (大) */
+        /* 刻度数字 */
         .number {
             position: absolute; width: 30px; height: 30px;
             text-align: center; line-height: 30px; font-weight: bold; font-size: 26px; color: #4e342e;
             top: 50%; left: 50%;
-            z-index: 2;
+            z-index: 2; pointer-events: none;
         }
 
-        /* 分钟刻度线 (小) */
+        /* 刻度线 */
         .tick {
             position: absolute; width: 2px; height: 10px; background: #ddd;
-            top: 0; left: 50%; transform-origin: 0 160px; /* 半径对应clock大小 */
-            z-index: 1;
+            top: 0; left: 50%; transform-origin: 0 160px;
+            z-index: 1; pointer-events: none;
         }
-        .tick.large { width: 4px; height: 15px; background: #ff7043; } /* 整点刻度加粗 */
+        .tick.large { width: 4px; height: 15px; background: #ff7043; }
 
         /* 中心点 */
         .center-dot {
             width: 18px; height: 18px; background: #37474f; border-radius: 50%;
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none;
         }
 
-        /* 指针容器 */
+        /* 指针通用样式 - 增加 grab 鼠标手势 */
         .hand {
             position: absolute; bottom: 50%; left: 50%;
             transform-origin: bottom center;
-            border-radius: 10px; z-index: 5;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性动画更生动 */
+            border-radius: 10px; z-index: 10;
             box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            cursor: grab;
+        }
+        .hand:active { cursor: grabbing; }
+
+        /* 增加透明触摸区域，让手指更容易按住 */
+        .hand::after {
+            content: ''; position: absolute;
+            left: -20px; right: -20px; top: -20px; bottom: -20px;
         }
         
-        /* 时针 (短胖) */
+        /* 时针 */
         .hour-hand {
-            width: 12px; height: 75px; background-color: #37474f;
-            /* 初始位置修正 */
+            width: 12px; height: 75px; background-color: #37474f; z-index: 11;
         }
         
-        /* 分针 (细长) */
+        /* 分针 */
         .minute-hand {
-            width: 8px; height: 115px; background-color: #00bcd4;
+            width: 8px; height: 115px; background-color: #00bcd4; z-index: 12;
         }
 
         /* 数字显示屏 */
@@ -74,24 +87,21 @@
             padding: 5px 20px;
             border-radius: 10px;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            pointer-events: none;
         }
 
         /* 操作面板 */
         .controls { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 500px; }
-        
-        .btn-group {
-            display: flex; gap: 5px; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 12px;
-        }
+        .btn-group { display: flex; gap: 5px; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 12px; }
 
         button {
             padding: 10px 15px; font-size: 15px; border: none; border-radius: 8px;
             cursor: pointer; font-weight: bold;
-            transition: all 0.1s;
+            transition: transform 0.1s;
             box-shadow: 0 3px 0 rgba(0,0,0,0.2);
         }
         button:active { transform: translateY(3px); box-shadow: none; }
 
-        /* 颜色区分功能 */
         .btn-hour { background-color: #ffcc80; color: #5d4037; }
         .btn-min { background-color: #80deea; color: #006064; }
         .btn-reset { background-color: #ffab91; color: #bf360c; }
@@ -100,126 +110,207 @@
 </head>
 <body>
 
-    <h1>🕰️ 奇妙时钟：几点几分？</h1>
-    <p>点击下方按钮，观察时针和分针是怎么赛跑的！</p>
+    <h1>🕰️ 奇妙时钟：拨一拨</h1>
+    <p>既可以点按钮，也可以用手直接拨动指针哦！</p>
     
-    <div class="clock">
+    <div class="clock" id="clockFace">
         <div id="ticks"></div>
         <div id="numbers"></div>
-        
         <div class="center-dot"></div>
-        <div class="hand hour-hand" id="hourHand"></div>
-        <div class="hand minute-hand" id="minuteHand"></div>
+        
+        <div class="hand hour-hand" id="hourHand" data-type="hour"></div>
+        <div class="hand minute-hand" id="minuteHand" data-type="minute"></div>
     </div>
 
     <div class="display-time" id="timeDisplay">12:00</div>
 
     <div class="controls">
         <div class="btn-group">
-            <button class="btn-hour" onclick="addTime(60)">+1 小时</button>
+            <button class="btn-hour" onclick="addTimeButton(60)">+1 小时</button>
             <button class="btn-hour" onclick="setSpecificTime(9, 0)">🕘 9点</button>
             <button class="btn-hour" onclick="setSpecificTime(3, 0)">🕒 3点</button>
         </div>
 
         <div class="btn-group">
-            <button class="btn-min" onclick="addTime(1)">+1 分</button>
-            <button class="btn-min" onclick="addTime(5)">+5 分</button>
-            <button class="btn-min" onclick="addTime(30)">+30 分</button>
+            <button class="btn-min" onclick="addTimeButton(1)">+1 分</button>
+            <button class="btn-min" onclick="addTimeButton(5)">+5 分</button>
+            <button class="btn-min" onclick="addTimeButton(30)">+30 分</button>
         </div>
 
         <div class="btn-group">
-            <button class="btn-reset" onclick="resetTime()">🔄 重置回12点</button>
+            <button class="btn-reset" onclick="resetTime()">🔄 重置</button>
         </div>
     </div>
 
     <script>
-        // 1. 初始化表盘刻度和数字
+        // --- 初始化表盘 (和上个版本一致) ---
         const numberContainer = document.getElementById('numbers');
         const tickContainer = document.getElementById('ticks');
         
-        // 绘制数字 (1-12)
         for (let i = 1; i <= 12; i++) {
             const numDiv = document.createElement('div');
             numDiv.className = 'number';
             numDiv.innerText = i;
             const angle = (i * 30) * (Math.PI / 180); 
-            // 调整半径为130px，让数字靠内一点
             const x = Math.sin(angle) * 130;
             const y = -Math.cos(angle) * 130;
             numDiv.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
             numberContainer.appendChild(numDiv);
         }
 
-        // 绘制刻度线 (0-59)
         for (let i = 0; i < 60; i++) {
             const tick = document.createElement('div');
             tick.className = i % 5 === 0 ? 'tick large' : 'tick';
-            tick.style.transform = `rotate(${i * 6}deg)`; // 每分钟6度
+            tick.style.transform = `rotate(${i * 6}deg)`;
             tickContainer.appendChild(tick);
         }
 
-        // 2. 核心逻辑：使用“总分钟数”来控制，保证旋转连贯
-        // 初始状态：12:00
+        // --- 核心逻辑 ---
         let totalMinutes = 12 * 60; 
+        const hourHand = document.getElementById('hourHand');
+        const minuteHand = document.getElementById('minuteHand');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const clockFace = document.getElementById('clockFace');
 
-        function updateClock() {
-            const hourHand = document.getElementById('hourHand');
-            const minuteHand = document.getElementById('minuteHand');
-            const timeDisplay = document.getElementById('timeDisplay');
-
-            // 计算旋转角度
+        // 更新时钟画面
+        // animate参数：如果是按钮点击，设为true（平滑）；如果是拖拽，设为false（跟手）
+        function updateClock(animate = true) {
             // 分针：每分钟走6度
             const minDeg = totalMinutes * 6;
-            // 时针：每分钟走0.5度 (360度 / 12小时 / 60分钟 = 0.5)
+            // 时针：每分钟走0.5度
             const hourDeg = totalMinutes * 0.5;
+
+            // 根据是否需要动画切换 CSS transition
+            const transitionStyle = animate ? "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none";
+            minuteHand.style.transition = transitionStyle;
+            hourHand.style.transition = transitionStyle;
 
             minuteHand.style.transform = `translate(-50%, 0) rotate(${minDeg}deg)`;
             hourHand.style.transform = `translate(-50%, 0) rotate(${hourDeg}deg)`;
             
-            // 计算数字时间显示 (12小时制逻辑)
-            // 获取当前的小时和分钟
+            // 更新数字显示
             let displayH = Math.floor(totalMinutes / 60) % 12;
-            let displayM = totalMinutes % 60;
+            let displayM = Math.floor(totalMinutes % 60);
 
-            // 处理12点显示问题 (0点和12点都显示12)
-            if (displayH === 0) displayH = 12;
-            
-            // 补零
+            // 处理 0点/12点 和 负数 的逻辑
+            if (displayM < 0) displayM = (displayM % 60 + 60) % 60;
+            if (displayH <= 0) displayH = (displayH % 12 + 12) % 12; 
+            if (displayH === 0) displayH = 12; 
+
             const strM = displayM < 10 ? '0' + displayM : displayM;
-            
             timeDisplay.innerText = `${displayH}:${strM}`;
         }
 
-        // 增加时间（通用函数）
-        function addTime(minutesToAdd) {
+        // 按钮点击增加时间 (带动画)
+        function addTimeButton(minutesToAdd) {
             totalMinutes += minutesToAdd;
-            updateClock();
+            updateClock(true);
         }
 
-        // 设置特定时间 (需要计算最近的未来旋转角度，防止指针乱转)
+        // 设置特定时间
         function setSpecificTime(h, m) {
-            // 目标时间的当天分钟数 (比如 3:00 -> 3*60 = 180)
             let targetDayMinutes = (h % 12) * 60 + m;
-            if (targetDayMinutes === 0) targetDayMinutes = 12 * 60; // 修正12点逻辑
+            if (targetDayMinutes === 0) targetDayMinutes = 12 * 60;
 
-            // 当前时间的当天分钟数
             let currentDayMinutes = totalMinutes % (12 * 60);
             if (currentDayMinutes === 0 && totalMinutes > 0) currentDayMinutes = 12 * 60;
 
-            // 计算差值，确保是向前拨动
             let diff = targetDayMinutes - currentDayMinutes;
-            if (diff <= 0) {
-                diff += 12 * 60; // 如果目标比当前小，就加一圈(12小时)
-            }
+            if (diff <= 0) diff += 12 * 60; // 保证顺时针走
 
-            addTime(diff);
+            totalMinutes += diff;
+            updateClock(true);
         }
 
         function resetTime() {
-            // 重置逻辑：为了动画平滑，我们不直接设为0，而是加到下一个最近的12点
-            let remainder = totalMinutes % 720; // 720 = 12 * 60
+            // 重置回最近的12点
+            let remainder = totalMinutes % 720;
             let toAdd = 720 - remainder;
-            addTime(toAdd);
+            totalMinutes += toAdd;
+            updateClock(true);
+        }
+
+        // --- 拖拽交互逻辑 (新增部分) ---
+        let isDragging = false;
+        let activeHandType = null;
+        let lastAngle = 0;
+
+        // 绑定事件 (支持鼠标和触摸)
+        [hourHand, minuteHand].forEach(hand => {
+            hand.addEventListener('mousedown', startDrag);
+            hand.addEventListener('touchstart', startDrag, { passive: false });
+        });
+
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('touchmove', doDrag, { passive: false });
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+
+        function getEventPosition(e) {
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        // 计算角度 (0点方向为0度)
+        function calculateAngle(x, y) {
+            const rect = clockFace.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            // atan2 的结果是 -PI 到 PI，0是3点钟方向
+            const radians = Math.atan2(y - cy, x - cx);
+            let degrees = radians * (180 / Math.PI) + 90;
+            if (degrees < 0) degrees += 360;
+            return degrees;
+        }
+
+        function startDrag(e) {
+            e.preventDefault(); // 防止拖拽时页面跟着动
+            isDragging = true;
+            activeHandType = e.currentTarget.dataset.type; // 识别抓的是哪个针
+            
+            const pos = getEventPosition(e);
+            lastAngle = calculateAngle(pos.x, pos.y);
+            
+            // 拖拽开始，关闭动画
+            updateClock(false);
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const pos = getEventPosition(e);
+            const currentAngle = calculateAngle(pos.x, pos.y);
+            
+            // 计算角度差值
+            let delta = currentAngle - lastAngle;
+            // 处理 360度/0度 交界处的突变
+            if (delta > 180) delta -= 360;
+            if (delta < -180) delta += 360;
+
+            // 根据抓的是分针还是时针，更新时间
+            if (activeHandType === 'minute') {
+                // 分针转1度 = 1/6 分钟
+                totalMinutes += delta / 6;
+            } else if (activeHandType === 'hour') {
+                // 时针转1度 = 2 分钟 (因为时针走一圈是720分钟，360度对应720分)
+                totalMinutes += delta * 2;
+            }
+
+            lastAngle = currentAngle;
+            updateClock(false); // 实时更新，无延迟
+        }
+
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                activeHandType = null;
+                // 拖拽结束后，把时间取整到最近的分钟，避免出现小数
+                totalMinutes = Math.round(totalMinutes);
+                updateClock(true); // 恢复一点弹性动画效果
+            }
         }
 
         // 初始化
