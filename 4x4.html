@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4x4 数独练习</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1b1d24;
+      --muted: #606879;
+      --line: #1b1d24;
+      --paper: #fffdf8;
+      --panel: #ffffff;
+      --accent: #256f79;
+      --accent-2: #d86f45;
+      --good: #237b4b;
+      --bad: #c43d3d;
+      --cell: clamp(58px, 17vw, 92px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(37, 111, 121, 0.08), transparent 310px),
+        var(--paper);
+    }
+
+    main {
+      width: min(980px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 15px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, max-content) minmax(250px, 1fr);
+      align-items: start;
+      gap: clamp(22px, 5vw, 52px);
+    }
+
+    .board-wrap {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, var(--cell));
+      grid-template-rows: repeat(4, var(--cell));
+      background: var(--line);
+      border: 4px solid var(--line);
+      width: calc(var(--cell) * 4 + 8px);
+      height: calc(var(--cell) * 4 + 8px);
+      box-shadow: 0 18px 35px rgba(27, 29, 36, 0.12);
+    }
+
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      background: #fff;
+      font-size: clamp(30px, 8vw, 48px);
+      font-weight: 800;
+      color: #231255;
+    }
+
+    .cell:nth-child(2n) {
+      border-right-width: 4px;
+    }
+
+    .cell:nth-child(n + 5):nth-child(-n + 8) {
+      border-bottom-width: 4px;
+    }
+
+    .cell input {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      padding: 0;
+      text-align: center;
+      font: inherit;
+      color: var(--accent);
+      background: #f6fbfb;
+      outline: 0;
+    }
+
+    .cell input:focus {
+      background: #dff1ef;
+      box-shadow: inset 0 0 0 4px rgba(37, 111, 121, 0.2);
+    }
+
+    .cell.error input {
+      color: var(--bad);
+      background: #fff0ed;
+    }
+
+    .cell.solved input {
+      color: var(--good);
+      background: #eef8f1;
+    }
+
+    .panel {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+      min-height: 100%;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .puzzle-id {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    button,
+    select {
+      min-height: 44px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 700;
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: #f1f4f4;
+    }
+
+    .number-pad button {
+      font-size: 24px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .warm {
+      background: var(--accent-2);
+      color: #fff;
+      border-color: var(--accent-2);
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .status {
+      min-height: 52px;
+      border-left: 5px solid var(--accent);
+      background: rgba(37, 111, 121, 0.08);
+      padding: 12px 14px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .status.good {
+      border-color: var(--good);
+      background: rgba(35, 123, 75, 0.1);
+      color: var(--good);
+    }
+
+    .status.bad {
+      border-color: var(--bad);
+      background: rgba(196, 61, 61, 0.1);
+      color: var(--bad);
+    }
+
+    .jump {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        width: min(100vw - 22px, 560px);
+        padding-top: 20px;
+      }
+
+      header,
+      .workspace {
+        display: grid;
+      }
+
+      .meta {
+        text-align: left;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>4x4 数独练习</h1>
+      </div>
+      <div class="meta">来自 1.pdf · 每次一道题</div>
+    </header>
+
+    <section class="workspace" aria-label="数独练习">
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="数独棋盘"></div>
+      </div>
+
+      <aside class="panel">
+        <div class="topline">
+          <div class="puzzle-id" id="puzzleTitle">第 1 题</div>
+          <div class="counter" id="counter">1 / 72</div>
+        </div>
+
+        <div class="selector number-pad" aria-label="数字选择">
+          <button type="button" data-num="1">1</button>
+          <button type="button" data-num="2">2</button>
+          <button type="button" data-num="3">3</button>
+          <button type="button" data-num="4">4</button>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="checkBtn" class="primary">检查</button>
+          <button type="button" id="clearBtn">清空填写</button>
+          <button type="button" id="prevBtn">上一题</button>
+          <button type="button" id="nextBtn">下一题</button>
+          <button type="button" id="answerBtn" class="warm wide">显示答案</button>
+        </div>
+
+        <div class="jump">
+          <select id="jumpSelect" aria-label="选择题号"></select>
+          <button type="button" id="randomBtn">随机</button>
+        </div>
+
+        <div id="status" class="status">请选择空格填写 1-4。</div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const rawPuzzles = [
+      "01:0020000423000400:4123321423411432",
+      "02:0000120000000031:4312124331242431",
+      "03:0000320003000040:1432321443212143",
+      "04:3004003000024000:3124243113424213",
+      "05:4002000003100000:4132324123141423",
+      "06:4001010000300002:4321214312343412",
+      "07:0300004004000020:4312124324313124",
+      "08:0400300400100300:2431312442131342",
+      "09:0000040340010030:3142241343211234",
+      "10:3000000001400010:3421123421434312",
+      "11:2000001000001300:2143341242311324",
+      "12:0010100330000002:2314142332414132",
+      "13:0000002302000040:2314142342313142",
+      "14:0010040300023000:2314142341323241",
+      "15:0000002410000002:2431312412434312",
+      "16:3000000100001200:3124243143121243",
+      "17:1000002000400003:1234432131422413",
+      "18:1000004000033010:1432234141233214",
+      "19:0002304000004000:1432324123144123",
+      "20:0000204000004320:3412214312344321",
+      "21:2100000000240000:2143341213244231",
+      "22:0002400000041000:3142423123141423",
+      "23:0403100000040000:2413134231244231",
+      "24:0203000000000041:4213312414322341",
+      "25:0000004221000000:4213134221343421",
+      "26:0014000204003000:2314413214233241",
+      "27:0000040010400020:2134341212434321",
+      "28:0002040000300001:3142241312344321",
+      "29:4200000000012000:4213134234212134",
+      "30:0100000002010040:3124241342311342",
+      "31:0000001004000102:1324421324313142",
+      "32:0001020030000004:4321124334122134",
+      "33:3000201000400000:3124241313424231",
+      "34:0340200000000013:1342243131244213",
+      "35:4200000004000001:4213312414322341",
+      "36:0001020000400402:4321123421433412",
+      "37:0400100430000001:2413132431424231",
+      "38:0040100020000030:3241142323144132",
+      "39:0002021031000000:1342421331242431",
+      "40:1000000223000000:1234341223414123",
+      "41:0000300010020004:4123324114322314",
+      "42:0003400000003200:2143432114323214",
+      "43:3000042000010000:3214142323414132",
+      "44:2100000030200003:2134431234211243",
+      "45:3000000400012000:3412123443212143",
+      "46:3200010000100002:3241412323141432",
+      "47:0004010002000003:2314413232411423",
+      "48:0000001004200300:4132321414232341",
+      "49:3002010000000034:3412214343211234",
+      "50:0000410000403000:2314413212433421",
+      "51:0430100400030000:2431132442133142",
+      "52:0002100303000000:3412124343212134",
+      "53:0041000000002100:3241142343122134",
+      "54:0002004041000300:1432324141232314",
+      "55:0002030000144000:1432234132144123",
+      "56:2000000400100302:2431312442131342",
+      "57:0000200030120003:4321213434121243",
+      "58:3020000000400032:3124421323411432",
+      "59:0000020430100000:4321123434122143",
+      "60:0420000040000201:1423231441323241",
+      "61:0042000040230000:1342243141233214",
+      "62:1200000000043001:1243431221343421",
+      "63:0000003102400000:3124243112434312",
+      "64:0000210000000014:4321214314323214",
+      "65:0000203100000012:3124243112434312",
+      "66:2004030004010000:2134431234211243",
+      "67:0200003020000304:3241413224131324",
+      "68:0403000000001040:2413312442311342",
+      "69:3020000400002000:3421123443122143",
+      "70:0304000030000420:2314413232411423",
+      "71:0200000300010400:3214412323411432",
+      "72:0400002000021040:2431312443121243"
+    ];
+
+    const puzzles = rawPuzzles.map((line) => {
+      const [id, givens, solution] = line.split(":");
+      return { id: Number(id), givens, solution };
+    });
+
+    const board = document.querySelector("#board");
+    const title = document.querySelector("#puzzleTitle");
+    const counter = document.querySelector("#counter");
+    const statusBox = document.querySelector("#status");
+    const jumpSelect = document.querySelector("#jumpSelect");
+    let current = 0;
+    let activeInput = null;
+
+    puzzles.forEach((puzzle, index) => {
+      const option = document.createElement("option");
+      option.value = index;
+      option.textContent = `第 ${puzzle.id} 题`;
+      jumpSelect.append(option);
+    });
+
+    function setStatus(text, tone = "") {
+      statusBox.textContent = text;
+      statusBox.className = `status ${tone}`.trim();
+    }
+
+    function renderPuzzle(index) {
+      current = (index + puzzles.length) % puzzles.length;
+      const puzzle = puzzles[current];
+      board.innerHTML = "";
+      title.textContent = `第 ${puzzle.id} 题`;
+      counter.textContent = `${current + 1} / ${puzzles.length}`;
+      jumpSelect.value = String(current);
+      setStatus("请选择空格填写 1-4。");
+      activeInput = null;
+
+      [...puzzle.givens].forEach((value, cellIndex) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (value === "0") {
+          const input = document.createElement("input");
+          input.inputMode = "numeric";
+          input.maxLength = 1;
+          input.autocomplete = "off";
+          input.ariaLabel = `第 ${Math.floor(cellIndex / 4) + 1} 行第 ${(cellIndex % 4) + 1} 列`;
+          input.addEventListener("focus", () => {
+            activeInput = input;
+          });
+          input.addEventListener("input", () => {
+            input.value = input.value.replace(/[^1-4]/g, "").slice(0, 1);
+            cell.classList.remove("error", "solved");
+          });
+          cell.append(input);
+        } else {
+          cell.textContent = value;
+          cell.setAttribute("aria-label", `固定数字 ${value}`);
+        }
+        board.append(cell);
+      });
+    }
+
+    function userValues() {
+      return [...board.children].map((cell, index) => {
+        const given = puzzles[current].givens[index];
+        if (given !== "0") return given;
+        return cell.querySelector("input").value || "0";
+      }).join("");
+    }
+
+    function checkPuzzle() {
+      const values = userValues();
+      const solution = puzzles[current].solution;
+      let emptyCount = 0;
+      let wrongCount = 0;
+      [...board.children].forEach((cell, index) => {
+        cell.classList.remove("error", "solved");
+        const input = cell.querySelector("input");
+        if (!input) return;
+        if (values[index] === "0") {
+          emptyCount += 1;
+          return;
+        }
+        if (values[index] !== solution[index]) {
+          wrongCount += 1;
+          cell.classList.add("error");
+        } else {
+          cell.classList.add("solved");
+        }
+      });
+
+      if (wrongCount > 0) {
+        setStatus(`有 ${wrongCount} 个格子需要再想想。`, "bad");
+      } else if (emptyCount > 0) {
+        setStatus(`目前都对，还剩 ${emptyCount} 个空格。`, "good");
+      } else {
+        setStatus("完成，全部正确。", "good");
+      }
+    }
+
+    function fillAnswer() {
+      const solution = puzzles[current].solution;
+      [...board.children].forEach((cell, index) => {
+        const input = cell.querySelector("input");
+        if (input) {
+          input.value = solution[index];
+          cell.classList.add("solved");
+          cell.classList.remove("error");
+        }
+      });
+      setStatus("已显示本题答案。", "good");
+    }
+
+    document.querySelectorAll("[data-num]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!activeInput) {
+          const firstEmpty = board.querySelector("input:not([value])");
+          activeInput = firstEmpty || board.querySelector("input");
+        }
+        if (activeInput) {
+          activeInput.value = button.dataset.num;
+          activeInput.focus();
+          activeInput.parentElement.classList.remove("error", "solved");
+        }
+      });
+    });
+
+    document.querySelector("#checkBtn").addEventListener("click", checkPuzzle);
+    document.querySelector("#answerBtn").addEventListener("click", fillAnswer);
+    document.querySelector("#clearBtn").addEventListener("click", () => renderPuzzle(current));
+    document.querySelector("#prevBtn").addEventListener("click", () => renderPuzzle(current - 1));
+    document.querySelector("#nextBtn").addEventListener("click", () => renderPuzzle(current + 1));
+    document.querySelector("#randomBtn").addEventListener("click", () => {
+      let next = current;
+      while (next === current && puzzles.length > 1) {
+        next = Math.floor(Math.random() * puzzles.length);
+      }
+      renderPuzzle(next);
+    });
+    jumpSelect.addEventListener("change", (event) => renderPuzzle(Number(event.target.value)));
+
+    renderPuzzle(0);
+  </script>
+</body>
+</html>
