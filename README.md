@@ -5,3 +5,4 @@
 - [奇妙时钟](https://hanshuiyu.github.io/leduo/shizhong.html)
 - [舒尔特训练](https://hanshuiyu.github.io/leduo/schulte.html)
 - [拼音汉字](https://hanshuiyu.github.io/leduo/hanzi-pinyin.html)
+- [4x4数独](https://hanshuiyu.github.io/leduo/4x4.html)
