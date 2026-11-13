@@ -6,3 +6,4 @@
 - [舒尔特训练](https://hanshuiyu.github.io/leduo/schulte.html)
 - [拼音汉字](https://hanshuiyu.github.io/leduo/hanzi-pinyin.html)
 - [4x4数独](https://hanshuiyu.github.io/leduo/4x4.html)
+- [一上识字](https://hanshuiyu.github.io/leduo/一年级上册识字闯关.html)
